@@ -1,21 +1,21 @@
 FROM python:3.10-slim
 
-# 1. Set the working directory inside the container
+# 1. Set the working directory
 WORKDIR /app
 
-# 2. Install system dependencies for OpenCV and rembg
+# 2. Install updated system dependencies for OpenCV and rembg
 RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# 3. COPY the requirements file FIRST (for better caching)
+# 3. COPY the requirements file FIRST
 COPY requirements.txt .
 
-# 4. NOW run the pip install
+# 4. Install python requirements
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 5. COPY everything else (the rest of your code)
+# 5. COPY everything else
 COPY . .
 
 # 6. Run the bot
