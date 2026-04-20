@@ -1,19 +1,22 @@
-# Use Python 3.10
 FROM python:3.10-slim
 
-# Install system libraries needed for image processing
-RUN apt-get update && apt-get install -y \
-    libmagic1 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set up a working directory
+# 1. Set the working directory inside the container
 WORKDIR /app
 
-# Copy your local files to the server
-COPY psd_templates .
+# 2. Install system dependencies for OpenCV and rembg
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install Python requirements
+# 3. COPY the requirements file FIRST (for better caching)
+COPY requirements.txt .
+
+# 4. NOW run the pip install
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Run the bot
+# 5. COPY everything else (the rest of your code)
+COPY . .
+
+# 6. Run the bot
 CMD ["python", "bot.py"]
