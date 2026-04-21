@@ -17,7 +17,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     timestamp = int(asyncio.get_event_loop().time())
 
-    # Ensure paths exist before using them
+    # Ensure paths exist before using them 
     os.makedirs(USER_IMAGE_DIR, exist_ok=True)
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
