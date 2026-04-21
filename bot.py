@@ -1,65 +1,97 @@
 import os
 import logging
 import asyncio
+
 from telegram import Update, InputFile
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters,
+)
+
+from telegram.request import HTTPXRequest
+from keep_alive import keep_alive
+
 from config import TELEGRAM_BOT_TOKEN, PSD_TEMPLATE_PATH, OUTPUT_DIR, USER_IMAGE_DIR
 
-# Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# ======================
+# LOGGING
+# ======================
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# ======================
+# HANDLERS (AMHARIC)
+# ======================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🎉 እንኳን ደህና መጡ!\n📸 እባክዎን ፎቶዎን ይላኩ።")
+    await update.message.reply_text(
+        "🎉 እንኳን ደህና መጡ!\n📸 ፎቶዎን ይላኩ።"
+    )
+
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    processing_msg = await update.message.reply_text("⏳ ፎቶው ደርሶናል! እባክዎን ትንሽ ይጠብቁ...")
-    user_id = update.effective_user.id
-    timestamp = int(asyncio.get_event_loop().time())
+    msg = await update.message.reply_text(
+        "⏳ ፎቶው ደርሶናል... ትንሽ ይጠብቁ"
+    )
 
-    # Ensure paths exist before using them 
+    user_id = update.effective_user.id
+
     os.makedirs(USER_IMAGE_DIR, exist_ok=True)
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    input_path = os.path.join(USER_IMAGE_DIR, f"{user_id}_{timestamp}.jpg")
-    output_path = os.path.join(OUTPUT_DIR, f"{user_id}_{timestamp}_out.jpg")
+    input_path = f"{USER_IMAGE_DIR}/{user_id}.jpg"
+    output_path = f"{OUTPUT_DIR}/{user_id}_out.jpg"
 
     try:
-        # Download the photo from Telegram
         photo = await update.message.photo[-1].get_file()
         await photo.download_to_drive(input_path)
 
-        # Import the processor here to catch syntax errors immediately
         from image_processor import process_image_with_psd
         process_image_with_psd(input_path, PSD_TEMPLATE_PATH, output_path)
 
-        # Send the final processed photo back
         with open(output_path, "rb") as f:
             await update.message.reply_photo(
                 photo=InputFile(f),
-                caption="✅ በተሳካ ሁኔታ አልቋል! \n ከአምቢቾ ጎዴ መካነ ኢየሱስ ወጣቶች አገልግሎት።"
+                caption="✅ በተሳካ ሁኔታ አልቋል!"
             )
 
     except Exception as e:
-        logger.error(f"Execution error: {e}")
-        await update.message.reply_text("❌ ይቅርታ አልተሳካም። እባክዎን እንደገና ይሞክሩ")
+        logger.error(e)
+        await update.message.reply_text("❌ አልተሳካም እንደገና ይሞክሩ")
+
     finally:
-        # CLEANUP: Remove files to save space/RAM
-        if os.path.exists(input_path): os.remove(input_path)
-        if os.path.exists(output_path): os.remove(output_path)
+        for p in [input_path, output_path]:
+            if os.path.exists(p):
+                os.remove(p)
+
         try:
-            await processing_msg.delete()
+            await msg.delete()
         except:
             pass
 
-if __name__ == "__main__":
-    # Final check for environment variables
+
+# ======================
+# MAIN
+# ======================
+def main():
     if not TELEGRAM_BOT_TOKEN:
-        logger.error("TELEGRAM_BOT_TOKEN not found! Check your Secrets/Env.")
-    else:
-        app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
-        app.add_handler(CommandHandler("start", start))
-        app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
-        
-        logger.info("Bot is active...")
-        app.run_polling(drop_pending_updates=True)
+        print("Missing token")
+        return
+
+    request = HTTPXRequest(connect_timeout=30, read_timeout=30)
+
+    app = Application.builder().token(TELEGRAM_BOT_TOKEN).request(request).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+
+    print("Bot is running...")
+
+    app.run_polling(drop_pending_updates=True)
+
+
+if __name__ == "__main__":
+    keep_alive()   # keeps Replit alive
+    main()
