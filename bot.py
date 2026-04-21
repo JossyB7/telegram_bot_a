@@ -13,7 +13,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🎉 እንኳን ደህና መጡ!\n📸 እባክዎን ፎቶዎን ይላኩ።")
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    processing_msg = await update.message.reply_text("⏳ ፎቶዎ ደርሶናል እባክዎን ትንስህ ይጠብቁ...")
+    processing_msg = await update.message.reply_text("⏳ ፎቶው ደርሶናል! እባክዎን ትንሽ ይጠብቁ...")
     user_id = update.effective_user.id
     timestamp = int(asyncio.get_event_loop().time())
 
