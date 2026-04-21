@@ -60,9 +60,10 @@ def process_image_with_psd(user_image_path, psd_template_path, output_path, plac
                 continue
 
             if layer.name == placeholder_name:
-                # Place the user photo behind the template frame
+                # Place the user photo behind the template frame first,
+                # then fall through to composite the layer on top of it
                 final_canvas.alpha_composite(user_resized, (paste_x, top))
-                
+
             try:
                 layer_img = layer.composite().convert("RGBA")
                 final_canvas.alpha_composite(layer_img, layer.offset)
